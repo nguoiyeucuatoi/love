@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <style>
+    body { margin: 0; overflow: hidden; background: black; }
+    canvas { display: block; }
+    #loadingText {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      color: white;
+      font-size: 24px;
+      font-family: sans-serif;
+      z-index: 1;
+    }
+  </style>
+</head>
+<body>
+
+<div id="loadingText">Đang tải yêu thương...</div>
+
+<script src="https://cdn.jsdelivr.net/gh/dulieublog2/js@main/chukhonggian.js"></script>
+<audio id="phatnhac" autoplay muted>
+  <source src="https://nguoiyeucuatoi.github.io/love/yeuem.mp3" type="audio/mpeg">
+</audio>
+
+<script>
+  
+  document.addEventListener('click', function () {
+    const audio = document.getElementById('phatnhac');
+    audio.muted = false;
+    audio.play();
+  }, { once: true }); 
+</script>
+<script>
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+  camera.position.z = 30;
+
+  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  renderer.setPixelRatio(window.devicePixelRatio);
+
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  document.body.appendChild(renderer.domElement);
+
+  const controls = new THREE.OrbitControls(camera, renderer.domElement);
+  controls.enableDamping = true;
+
+  const loader = new THREE.FontLoader();
+  const textureLoader = new THREE.TextureLoader();
+  const particles = [];
+
+  const jansharenoidung = [
+    "Chị cho em 1 cơ hội bên chị nha",
+    "NGUYỄN NGỌC LINH",
+    "Em lỡ thích chị rùiiiii",
+    "LOVE",
+    ",", "%", "#", "<", ">", ":", "+", ";"
+  ];
+
+  loader.load('https://cdn.jsdelivr.net/gh/nguoiyeucuatoi/love/fonttextjanshare.json', font => {
+    // Ẩn chữ tạm sau khi đã load font xong
+    document.getElementById("loadingText").style.display = "none";
+
+    // Chữ rơi
+    for (let i = 0; i < 50; i++) {
+      const textGeo = new THREE.TextGeometry(jansharenoidung[Math.floor(Math.random() * jansharenoidung.length)], {
+        font: font,
+        size: 1,
+        height: 0.1,
+        curveSegments: 8,
+      });
+
+      const material = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true });
+      const mesh = new THREE.Mesh(textGeo, material);
+
+      mesh.position.set((Math.random() - 0.5) * 30, Math.random() * 50 + 30, (Math.random() - 0.5) * 30);
+      mesh.userData.velocity = new THREE.Vector3(0, -0.1 - Math.random() * 0.2, 0);
+
+      scene.add(mesh);
+      particles.push(mesh);
+    }
+
+    // Tim rơi
+    for (let i = 0; i < 100; i++) {
+      const shape = new THREE.Shape();
+      const x = 0, y = 0;
+      shape.moveTo(x, y);
+      shape.bezierCurveTo(x, y, x - 1.5, y - 1.5, x, y - 3);
+      shape.bezierCurveTo(x + 1.5, y - 1.5, x, y, x, y);
+
+      const geometry = new THREE.ShapeGeometry(shape);
+      const material = new THREE.MeshBasicMaterial({ color: 0xff69b4, side: THREE.DoubleSide, transparent: true });
+      const heart = new THREE.Mesh(geometry, material);
+      heart.scale.set(0.5, 0.5, 0.5);
+
+      heart.position.set((Math.random() - 0.5) * 50, Math.random() * 50 + 30, (Math.random() - 0.5) * 50);
+      heart.userData.velocity = new THREE.Vector3(0, -0.05 - Math.random() * 0.1, 0);
+
+      scene.add(heart);
+      particles.push(heart);
+    }
+
+    // Ảnh rơi
+    const imageUrls = [
+  
+      'https://i.ibb.co/5XH9b1wZ/7d84b14dd420607e3931.jpg',
+      'https://i.ibb.co/5XH9b1wZ/7d84b14dd420607e3931.jpg',
+      'https://i.ibb.co/5XH9b1wZ/7d84b14dd420607e3931.jpg',
+ 
+    ];
+
+    const imageTextures = [];
+    let currentTextureIndex = 0;
+
+    const loadImages = imageUrls.map(url =>
+      new Promise(resolve => {
+        textureLoader.load(url, texture => {
+          imageTextures.push(texture);
+          resolve();
+        });
+      })
+    );
+
+    Promise.all(loadImages).then(() => {
+      for (let i = 0; i < 5; i++) {
+        const geometry = new THREE.PlaneGeometry(10, 10);
+        const texture = imageTextures[i % imageTextures.length];
+        const material = new THREE.MeshBasicMaterial({ 
+          map: texture, 
+          transparent: true,
+          side: THREE.DoubleSide
+        });
+        const imageMesh = new THREE.Mesh(geometry, material);
+
+        imageMesh.position.set((Math.random() - 0.5) * 50, Math.random() * 50 + 30, (Math.random() - 0.5) * 50);
+        imageMesh.userData.velocity = new THREE.Vector3(0, -0.04 - Math.random() * 0.03, 0);
+        imageMesh.userData.isImage = true;
+
+        scene.add(imageMesh);
+        particles.push(imageMesh);
+      }
+    });
+  });
+
+  function animate(time) {
+    requestAnimationFrame(animate);
+    controls.update();
+
+    const maxDist = 100;
+
+    particles.forEach(p => {
+      p.position.add(p.userData.velocity);
+
+      if (p.position.y < -30) {
+        p.position.y = Math.random() * 50 + 30;
+        p.position.x = (Math.random() - 0.5) * 50;
+        p.position.z = (Math.random() - 0.5) * 50;
+
+        if (p.userData.isImage) {
+          currentTextureIndex = (currentTextureIndex + 1) % imageTextures.length;
+          p.material.map = imageTextures[currentTextureIndex];
+          p.material.needsUpdate = true;
+        }
+      }
+
+      if (p.material && !(p.geometry instanceof THREE.PlaneGeometry)) {
+        if (p.material.color) {
+          const hue = (time * 0.0001 + p.id * 0.01) % 1;
+          p.material.color.setHSL(hue, 0.8, 0.6);
+        }
+        const opacity = 1 - (p.position.length() / maxDist);
+        p.material.opacity = THREE.MathUtils.clamp(opacity, 0, 1);
+      }
+    });
+
+    renderer.render(scene, camera);
+  }
+
+  animate();
+</script>
+
+</body>
+</html>
